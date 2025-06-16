@@ -1,15 +1,61 @@
 import streamlit as st
 import importlib
 import time
+import re
 
 # === UI Setup ===
 st.set_page_config(
-    page_title="PersonaForge",
+    page_title="PersonaSynth",
     page_icon="💬",
-    layout="centered"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
-st.title("PersonaForge")
+
+# === Custom CSS for consistent styling ===
+st.markdown("""
+    <style>
+    div[data-baseweb="select"] {
+        background-color: #f1f5f9;
+        border-radius: 12px;
+        padding: 6px;
+        border: 1px solid #e2e8f0;
+        font-size: 16px;
+    }
+    div[data-baseweb="select"]:hover {
+        border: 1px solid #0077b6;
+    }
+    div[data-baseweb="select"] > div {
+        color: #1e293b;
+    }
+    label {
+        font-weight: 500;
+        font-size: 15px;
+        color: #1e293b;
+        margin-bottom: 4px;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+st.title("PersonaSynth")
 st.caption("Interview Simulation")
+
+# === Heuristic AI detection ===
+def is_likely_ai_generated(text):
+    text = text.strip().lower()
+    gpt_starters = ["certainly", "as a", "in conclusion", "to begin with", "firstly", "secondly", "undoubtedly", 
+                    "I appreciate the opportunity to answer that.", "I'm glad you brought that up.", 
+                    "That’s a great question."]
+    formality_flags = ["i would approach", "my methodology", "to summarize", "it is imperative", "in my professional opinion"]
+    academic_flair = ["in this context", "moreover", "furthermore", "thus", "therefore"]
+
+    if any(text.startswith(phrase) for phrase in gpt_starters):
+        return True
+    if any(flag in text for flag in formality_flags + academic_flair):
+        return True
+    word_count = len(text.split())
+    if word_count > 75 and re.search(r'[.,;:]', text) and not re.search(r"\bum\b|\bi guess\b|\bi think\b", text):
+        return True
+    return False
 
 # === Define industry → agents → subroles structure ===
 INDUSTRY_AGENTS = {
@@ -40,6 +86,21 @@ INDUSTRY_AGENTS = {
         "Academic Interviewer": "agents.education.academic_interviewer",
         "School Principal": "agents.education.school_principal"
     }
+}
+
+AGENT_IDEAL_USERS = {
+    "Hiring Manager": "Mid-to-senior software engineers, technical PMs, and product leads.",
+    "HR Interviewer": "Candidates prepping for behavioral rounds, fresh grads, career switchers.",
+    "Technical Recruiter": "CS undergrads, bootcamp grads, and early-career developers.",
+    "IB Analyst": "Undergraduate finance majors, MBAs targeting investment banks.",
+    "Financial Advisor": "CFP candidates, finance grads, client-facing retail banking applicants.",
+    "Corporate Finance Manager": "MBAs, FP&A analysts, professionals in internal finance roles.",
+    "Sales Executive": "Sales reps, business development associates, SDRs/BDRs.",
+    "Brand Manager": "Marketing grads, CPG aspirants, early-stage product marketers.",
+    "Medical School Interviewer": "Pre-med students, BS/MD applicants, MCAT prep students.",
+    "Hospital Admin": "MHA/MBA students, nursing managers, healthcare ops professionals.",
+    "Academic Interviewer": "MS/PhD applicants, research assistants, teaching fellows.",
+    "School Principal": "Aspiring teachers, K-12 educators, Ed Leadership applicants."
 }
 
 # === Session State Setup ===
@@ -86,12 +147,22 @@ if isinstance(agents[selected_agent], dict):
     agent_module = importlib.import_module(module_path)
     agent = agent_module.TechnicalRecruiter(language=selected_subrole)
 else:
+    selected_subrole = ""
     module_path = agents[selected_agent]
     agent_module = importlib.import_module(module_path)
     agent = getattr(agent_module, module_path.split('.')[-1])
 
+# === Show Ideal Candidate Info ===
+ideal_user_desc = AGENT_IDEAL_USERS.get(selected_agent)
+if ideal_user_desc:
+    st.markdown(f"""
+    <div style='background-color: #f1f5f9; padding: 14px 20px; border-radius: 10px; margin-top: 12px; margin-bottom: 12px; border-left: 6px solid #0077b6;'>
+        <strong>Ideal Candidates:</strong><br>{ideal_user_desc}
+    </div>
+    """, unsafe_allow_html=True)
+
 # === Reset session state on agent change ===
-new_key = f"{industry}-{selected_agent}-{selected_subrole if 'selected_subrole' in locals() else ''}"
+new_key = f"{industry}-{selected_agent}-{selected_subrole}"
 if st.session_state.active_key != new_key:
     st.session_state.active_key = new_key
     for key in ["history", "current_prompt", "current_agent", "turn", "started", "feedback"]:
@@ -110,7 +181,6 @@ if not st.session_state.started:
 
 # === Chat Interface ===
 if st.session_state.started:
-
     def chat_bubble(content, sender, color, align_right=False):
         tail = f"""
             content: \"\";
@@ -148,10 +218,13 @@ if st.session_state.started:
     if len(st.session_state.history) < MAX_TURNS:
         user_input = st.chat_input("Your response")
         if user_input:
+            ai_flag = is_likely_ai_generated(user_input)
             st.session_state.history[-1]["user"] = user_input
             st.markdown(chat_bubble(user_input, "🧑 You", user_color, align_right=True), unsafe_allow_html=True)
+            if ai_flag:
+                st.warning("⚠️ This response seems overly formal or AI-generated. Try answering more naturally for better feedback.")
             with st.spinner("Agent is typing..."):
-                time.sleep(1.0)
+                time.sleep(3.0)
             new_q = agent.ask_question(st.session_state.history)
             st.session_state.history.append({
                 "agent": agent.name,
@@ -162,7 +235,6 @@ if st.session_state.started:
 
     elif len(st.session_state.history) >= MAX_TURNS:
         st.success("Interview Complete!")
-
         if st.session_state.feedback is None:
             if st.button("Get Feedback Summary"):
                 from feedback_evaluator import evaluator
@@ -179,19 +251,22 @@ if st.session_state.started:
                     continue
                 if isinstance(value, (list, tuple)) and len(value) == 2:
                     score, comment = value
-                    st.markdown(f"**{skill}** – {comment}")
+                    st.markdown(f"**{skill}**")
                     st.markdown(f"""
-<div style='margin-bottom: 16px;'>
-  <div style='display: flex; justify-content: space-between;'>
-    <strong>{skill}</strong>
-    <span style='font-size: 14px;'>Score: {score}/10</span>
-  </div>
-  <div style='height: 14px; background-color: #ddd; border-radius: 6px;'>
-    <div style='height: 100%; width: {score * 10}%; background-color: {'#e63946' if score < 5 else '#2a9d8f'}; border-radius: 6px; transition: width 0.4s ease-in-out;'></div>
-  </div>
-  <div style='margin-top: 6px; font-size: 13px;'>{comment}</div>
-</div>
-""", unsafe_allow_html=True)
+                    <div style='margin-bottom: 8px;'>
+                      <div style='display: flex; justify-content: space-between;'>
+                        <div style='font-weight: 500;'>{skill}</div>
+                        <span style='font-size: 14px;'>Score: {score}/10</span>
+                      </div>
+                      <div style='height: 14px; background-color: #ddd; border-radius: 6px;'>
+                        <div style='height: 100%; width: {score * 10}%; background-color: {'#e63946' if score < 5 else '#2a9d8f'}; border-radius: 6px; transition: width 0.4s ease-in-out;'></div>
+                      </div>
+                      <div style='margin-top: 6px; font-size: 13px; color: #334155;'>{comment}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"**{skill}**")
+                    st.markdown(str(value))
             st.markdown("### 🗾 Summary")
             st.info(st.session_state.feedback.get("Summary", "No summary available."))
 

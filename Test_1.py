@@ -4,11 +4,11 @@ import time
 
 # === UI Setup ===
 st.set_page_config(
-    page_title="PersonaForge",
+    page_title="PersonaSynth",
     page_icon="💬",
     layout="centered"
 )
-st.title("PersonaForge")
+st.title("PersonaSynth")
 st.caption("Interview Simulation")
 
 # === Define industry → agents → subroles structure ===
