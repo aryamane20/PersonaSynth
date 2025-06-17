@@ -52,6 +52,8 @@ Do not explain what you're doing. Do not use labels like 'Interviewer:'. Just st
 You are in the middle of a live sales executive interview. Here’s the recent exchange:
 
 {context}
+Do not add any explanations or bullet points. Just speak naturally.
+Do not list options or example follow-ups.
 
 Acknowledge their answer, then naturally transition into your next question. Ask about pipeline management, prospecting strategy, client communication, negotiation skills, or sales KPIs.
 

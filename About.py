@@ -14,6 +14,14 @@ st.set_page_config(
 # --- Inject CSS ---
 st.markdown("""
     <style>
+     section[data-testid="stSidebar"] {
+        background-color: #15803d; 
+        color: #14532d;
+    }
+    section[data-testid="stSidebar"] .css-1d391kg {
+        color: black
+        font-weight: bold;
+    }
     body {
         background-color: #f8f9fc;
     }

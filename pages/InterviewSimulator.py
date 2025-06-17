@@ -2,11 +2,13 @@ import streamlit as st
 import importlib
 import time
 import re
+from PIL import Image
+import base64
+from io import BytesIO
 
 # === UI Setup ===
 st.set_page_config(
-    page_title="PersonaSynth",
-    page_icon="💬",
+    page_title="Interview Simulator",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -14,31 +16,53 @@ st.set_page_config(
 # === Custom CSS for consistent styling ===
 st.markdown("""
     <style>
+    section[data-testid="stSidebar"] {
+        background-color: #15803d; 
+        color: #14532d;
+    }
+    section[data-testid="stSidebar"] .css-1d391kg {
+        color: black !important;  /* Label text */
+        font-weight: bold;
+    }
     div[data-baseweb="select"] {
         background-color: #f1f5f9;
         border-radius: 12px;
         padding: 6px;
         border: 1px solid #e2e8f0;
         font-size: 16px;
+        border-left: 4px solid #15803d;
     }
     div[data-baseweb="select"]:hover {
-        border: 1px solid #0077b6;
+        cursor:pointer;
     }
     div[data-baseweb="select"] > div {
         color: #1e293b;
+        border-right-color:#15803d;
+        border-left-color:#15803d;
+        border-top-color:#15803d;
+        border-bottom-color:#15803d;
     }
-    label {
-        font-weight: 500;
-        font-size: 15px;
-        color: #1e293b;
-        margin-bottom: 4px;
+     div[data-baseweb="select"] > div:hover {
+        color: #15803d;
+        cursor:pointer;
+    }
+    .logo-container {
+        margin-bottom:10px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("PersonaSynth")
-st.caption("Interview Simulation")
-
+logo = Image.open("Synthlogo.png") 
+buffered = BytesIO()
+logo.save(buffered, format="PNG")
+logo_b64 = base64.b64encode(buffered.getvalue()).decode()
+st.markdown(f"""
+<div style="text-align: right;">
+    <a href="/About">
+        <img src="data:image/png;base64,{logo_b64}" width="60" class="logo-container" style="cursor:pointer;" />
+    </a>
+</div>
+""", unsafe_allow_html=True)
 # === Heuristic AI detection ===
 def is_likely_ai_generated(text):
     text = text.strip().lower()
@@ -156,7 +180,7 @@ else:
 ideal_user_desc = AGENT_IDEAL_USERS.get(selected_agent)
 if ideal_user_desc:
     st.markdown(f"""
-    <div style='background-color: #f1f5f9; padding: 14px 20px; border-radius: 10px; margin-top: 12px; margin-bottom: 12px; border-left: 6px solid #0077b6;'>
+    <div style='background-color: #f1f5f9; padding: 12px 14px; border-radius: 12px; margin-top: 12px; margin-bottom: 12px; border-left: 4px solid #15803d;'>
         <strong>Ideal Candidates:</strong><br>{ideal_user_desc}
     </div>
     """, unsafe_allow_html=True)
@@ -169,8 +193,15 @@ if st.session_state.active_key != new_key:
         st.session_state[key] = [] if key == "history" else 0 if key == "turn" else None if key == "feedback" else False
 
 # === Start Interview Button ===
-if not st.session_state.started:
-    if st.button("Start Interview"):
+with st.container():
+    st.markdown('<div class="button-wrapper">', unsafe_allow_html=True)
+    clicked = st.button("Start Your Interview!", key="start")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    if "started" not in st.session_state:
+        st.session_state.started = False
+
+    if not st.session_state.started and clicked:
         st.session_state.started = True
         first_q = agent.ask_question([])
         st.session_state.history.append({
@@ -178,7 +209,6 @@ if not st.session_state.started:
             "question": first_q,
             "user": ""
         })
-
 # === Chat Interface ===
 if st.session_state.started:
     def chat_bubble(content, sender, color, align_right=False):
@@ -203,7 +233,7 @@ if st.session_state.started:
         """
 
     agent_color = "#0077b6"
-    user_color = "#444444"
+    user_color = "#15803d"
 
     current_round = len([m for m in st.session_state.history if m['user']]) + 1
     st.markdown(f"### Round {min(current_round, MAX_TURNS)} of {MAX_TURNS}")
@@ -232,9 +262,10 @@ if st.session_state.started:
                 "user": ""
             })
             st.rerun()
-
+# === Interview Completion & Feedback ===
     elif len(st.session_state.history) >= MAX_TURNS:
         st.success("Interview Complete!")
+
         if st.session_state.feedback is None:
             if st.button("Get Feedback Summary"):
                 from feedback_evaluator import evaluator
@@ -245,7 +276,7 @@ if st.session_state.started:
                     st.session_state.feedback = evaluator.evaluate(full_transcript)
 
         if isinstance(st.session_state.feedback, dict):
-            st.markdown("### 🧠 Interview Feedback")
+            st.markdown("### Interview Feedback")
             for skill, value in st.session_state.feedback.items():
                 if skill == "Summary":
                     continue
@@ -259,7 +290,7 @@ if st.session_state.started:
                         <span style='font-size: 14px;'>Score: {score}/10</span>
                       </div>
                       <div style='height: 14px; background-color: #ddd; border-radius: 6px;'>
-                        <div style='height: 100%; width: {score * 10}%; background-color: {'#e63946' if score < 5 else '#2a9d8f'}; border-radius: 6px; transition: width 0.4s ease-in-out;'></div>
+                        <div style='height: 100%; width: {score * 10}%; background-color: {'#e63946' if score < 5 else '#15803d'}; border-radius: 6px; transition: width 0.4s ease-in-out;'></div>
                       </div>
                       <div style='margin-top: 6px; font-size: 13px; color: #334155;'>{comment}</div>
                     </div>
@@ -267,8 +298,10 @@ if st.session_state.started:
                 else:
                     st.markdown(f"**{skill}**")
                     st.markdown(str(value))
-            st.markdown("### 🗾 Summary")
-            st.info(st.session_state.feedback.get("Summary", "No summary available."))
+
+            st.markdown("### Summary")
+            summary = st.session_state.feedback.get("Summary", "No summary available.")
+            st.info(summary)
 
         elif st.session_state.feedback:
             st.markdown("### Interview Feedback")
@@ -277,3 +310,4 @@ if st.session_state.started:
         if st.button("🔄 Restart Interview", help="Click to start over"):
             for key in ["history", "current_prompt", "current_agent", "turn", "started", "feedback"]:
                 st.session_state[key] = [] if key == "history" else 0 if key == "turn" else None if key == "feedback" else False
+ 

@@ -46,7 +46,8 @@ Do not include commentary, notes, or labels. Ask only one question and wait for 
 Here is the recent conversation:
 
 {context}
-
+Do not add any explanations or bullet points. Just speak naturally.
+Do not list options or example follow-ups.
 Now, follow up based on what they shared. Ask your next realistic question about operations management, interdepartmental coordination, crisis handling, or healthcare compliance. Stay conversational and focused on real-world hospital challenges."""
         return self.model.predict(prompt)
 

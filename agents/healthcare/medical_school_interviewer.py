@@ -46,7 +46,8 @@ Ask one clear question only and wait for their response. Do not include labels, 
 Here is the recent conversation:
 
 {context}
-
+Do not add any explanations or bullet points. Just speak naturally.
+Do not list options or example follow-ups.
 Continue the interview. Ask the next thoughtful question based on their reply—topics may include ethical dilemmas, shadowing experiences, challenges in healthcare, or communication in stressful situations. Keep it conversational and focused."""
         return self.model.predict(prompt)
 

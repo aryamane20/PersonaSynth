@@ -47,6 +47,8 @@ Do not add any explanations or bullet points. Just speak naturally."""
 This is the recent conversation:
 {context}
 
+Do not add any explanations or bullet points. Just speak naturally.
+Do not list options or example follow-ups.
 Now continue the dialogue naturally. Ask your next thoughtful question—maybe on decision-making, leadership, or how they’ve handled difficult feedback. Keep your tone human and don’t explain your intent. Just speak as a manager would in a real conversation."""
         return self.model.predict(prompt)
 

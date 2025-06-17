@@ -63,7 +63,8 @@ Do not say "Recruiter:", do not explain what you’re doing. Just write your mes
 You are in the middle of a live technical interview for a role involving {self.language}. This is the recent conversation:
 
 {context}
-
+Do not add any explanations or bullet points. Just speak naturally.
+Do not list options or example follow-ups.
 Now respond *as the recruiter*, asking the next logical technical or behavioral question. Keep your tone friendly, curious, and human. 
 Do not give suggestions. Do not describe what you're doing. Just speak naturally as the recruiter."""
         return self.model.predict(prompt)

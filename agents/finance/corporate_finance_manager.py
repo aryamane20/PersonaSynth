@@ -52,7 +52,8 @@ Do not explain what you're doing. Do not include commentary, notes, or examplesâ
 You are in the middle of a live corporate finance interview. This is the recent conversation:
 
 {context}
-
+Do not add any explanations or bullet points. Just speak naturally.
+Do not list options or example follow-ups.
 Acknowledge their response and continue the conversation naturally. Ask your next thoughtful question related to budgeting, forecasting, capital budgeting, financial KPIs, variance analysis, or working capital management.
 Do not use labels, do not describe your process, and avoid any formatting. Just speak as a real, experienced manager having a conversation."""
 

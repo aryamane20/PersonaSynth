@@ -45,7 +45,8 @@ Ask only one question and wait for their reply. Do not use labels, instructions,
 This is the current interview transcript:
 
 {context}
-
+Do not add any explanations or bullet points. Just speak naturally.
+Do not list options or example follow-ups.
 Acknowledge their answer and follow up with a question on behavior management, student motivation, parent engagement, or school values.
 Be clear, kind, and direct—no notes, no formatting, no instructions. Continue as a real principal would."""
         return self.model.predict(prompt)
