@@ -235,7 +235,8 @@ if st.session_state.started:
     agent_color = "#0077b6"
     user_color = "#15803d"
 
-    current_round = len([m for m in st.session_state.history if m['user']]) + 1
+    num_completed = len([m for m in st.session_state.history if m["user"]])
+    current_round = num_completed + 1
     st.markdown(f"### Round {min(current_round, MAX_TURNS)} of {MAX_TURNS}")
     st.progress(min(current_round, MAX_TURNS) / MAX_TURNS)
 
@@ -245,7 +246,7 @@ if st.session_state.started:
         if turn["user"]:
             st.markdown(chat_bubble(turn["user"], "🧑 You", user_color, align_right=True), unsafe_allow_html=True)
 
-    if len(st.session_state.history) < MAX_TURNS:
+    if num_completed < MAX_TURNS:
         user_input = st.chat_input("Your response")
         if user_input:
             ai_flag = is_likely_ai_generated(user_input)
@@ -254,16 +255,24 @@ if st.session_state.started:
             if ai_flag:
                 st.warning("⚠️ This response seems overly formal or AI-generated. Try answering more naturally for better feedback.")
             with st.spinner("Agent is typing..."):
-                time.sleep(3.0)
-            new_q = agent.ask_question(st.session_state.history)
-            st.session_state.history.append({
-                "agent": agent.name,
-                "question": new_q,
-                "user": ""
-            })
+                time.sleep(5.0)
+
+            if num_completed + 1 < MAX_TURNS:
+                new_q = agent.ask_question(st.session_state.history)
+                st.session_state.history.append({
+                    "agent": agent.name,
+                    "question": new_q,
+                    "user": ""
+                })
+            else:
+                st.session_state.history.append({
+                    "agent": agent.name,
+                    "question": "Thank you for that thoughtful response. I really appreciate the way you articulated your experience. That concludes our interview today. Wishing you the very best ahead!",
+                    "user": ""
+                })
             st.rerun()
 # === Interview Completion & Feedback ===
-    elif len(st.session_state.history) >= MAX_TURNS:
+    elif num_completed == MAX_TURNS:
         st.success("Interview Complete!")
 
         if st.session_state.feedback is None:
@@ -309,5 +318,13 @@ if st.session_state.started:
 
         if st.button("🔄 Restart Interview", help="Click to start over"):
             for key in ["history", "current_prompt", "current_agent", "turn", "started", "feedback"]:
-                st.session_state[key] = [] if key == "history" else 0 if key == "turn" else None if key == "feedback" else False
+                if key == "history":
+                    st.session_state[key] = []
+                elif key == "turn":
+                    st.session_state[key] = 0
+                elif key == "feedback":
+                    st.session_state[key] = None
+                else:
+                    st.session_state[key] = False
+            st.rerun()
  

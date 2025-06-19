@@ -1,4 +1,5 @@
 from langchain_community.chat_models import ChatOpenAI
+import streamlit as st
 
 class AcademicInterviewer:
     def __init__(self):
@@ -26,31 +27,45 @@ class AcademicInterviewer:
         )
 
     def ask_question(self, history):
+        if "academic_questions" not in st.session_state:
+            st.session_state["academic_questions"] = set()
+
         if not history:
             prompt = f"""{self.persona}
 
 You are the academic interviewer starting the conversation.
-Greet the candidate politely and telling them your name as Dr. Anika Verma as well as a one line introduction of yourself and then ask them to share their academic background, major fields of interest, and motivation for pursuing this field.
+Greet the candidate politely and tell them your name is Dr. Anika Verma. Briefly introduce yourself and then ask them to share their academic background, major fields of interest, and motivation for pursuing this field.
 
 Do not use labels like '**Interviewer:**', or insert parenthetical notes.
-Do not list options or example follow-ups.
+Do not list options or follow-up suggestions.
+Ask only one question and wait for their response. Speak naturally and professionally without markdown or narration."""
+            response = self.model.predict(prompt).strip()
+        else:
+            context = "\n".join([
+                f"{m['agent']}: {m['question']}\nUser: {m['user']}" for m in history[-2:]
+            ])
+            past_questions = list(st.session_state["academic_questions"])
 
-Ask only one question and wait for their answer. Keep it natural and professional without using markdown or narration."""
-            return self.model.predict(prompt)
-
-        context = "\n".join([
-            f"{m['agent']}: {m['question']}\nUser: {m['user']}" for m in history[-2:]
-        ])
-
-        prompt = f"""{self.persona}
+            prompt = f"""{self.persona}
 You are in the middle of a live academic interview. This is the recent conversation:
 
 {context}
+
+Avoid repeating any of these previously asked questions:
+{past_questions}
 Do not add any explanations or bullet points. Just speak naturally.
 Do not list options or example follow-ups.
-Respond naturally and ask the next relevant academic or teaching-related question. Focus on research methodology, instructional style, or educational philosophy.
-Do not use meta explanations or formatting—just continue as a thoughtful, curious academic."""
+Acknowledge the candidate’s last response, then ask your next thoughtful question related to:
+- research methods or thesis direction,
+- teaching philosophy or classroom approach,
+- interdisciplinary connections or academic mentorship,
+- educational challenges or future research goals.
 
-        return self.model.predict(prompt)
+Do not explain your intent or describe the interview process. Speak as a real academic would—thoughtfully, warmly, and with genuine curiosity."""
+
+            response = self.model.predict(prompt).strip()
+
+        st.session_state["academic_questions"].add(response)
+        return response
 
 academic_interviewer = AcademicInterviewer()

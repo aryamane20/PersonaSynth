@@ -1,4 +1,5 @@
 from langchain_community.chat_models import ChatOpenAI
+import streamlit as st
 
 class MedicalSchoolInterviewer:
     def __init__(self):
@@ -26,29 +27,41 @@ class MedicalSchoolInterviewer:
         )
 
     def ask_question(self, history):
+        if "global_asked_questions" not in st.session_state:
+            st.session_state["global_asked_questions"] = set()
+
         if not history:
             prompt = f"""{self.persona}
 
-You are beginning a live medical school admissions interview. Greet the candidate with warmth, then tell them your name as Alex as well as a one line introduction of yourself and then ask them to share their background and what inspired them to pursue medicine.
+You are beginning a live medical school admissions interview. Greet the candidate with warmth, then introduce yourself as Alex with one line about your role. Ask them to briefly share their background and what inspired them to pursue a career in medicine.
 
-Do not use labels like '**Interviewer:**', or insert parenthetical notes.
-Do not list options or example follow-ups.
+Avoid using labels like '**Interviewer:**' or any kind of formatting. Ask one clear question only and wait for their response."""
+            response = self.model.predict(prompt).strip()
+        else:
+            context = "\n".join([
+                f"{m['agent']}: {m['question']}\nUser: {m['user']}" for m in history[-2:]
+            ])
+            prev_questions = list(st.session_state["global_asked_questions"])
 
-Ask one clear question only and wait for their response. Do not include labels, notes, or explanations."""
-            return self.model.predict(prompt)
+            prompt = f"""{self.persona}
 
-        context = "\n".join([
-            f"{m['agent']}: {m['question']}\nUser: {m['user']}" for m in history[-2:]
-        ])
-
-        prompt = f"""{self.persona}
-
-Here is the recent conversation:
-
+You are in the middle of a live medical school interview. Here's the recent conversation:
 {context}
+
+Previously asked topics include:
+{prev_questions}
 Do not add any explanations or bullet points. Just speak naturally.
 Do not list options or example follow-ups.
-Continue the interview. Ask the next thoughtful question based on their reply—topics may include ethical dilemmas, shadowing experiences, challenges in healthcare, or communication in stressful situations. Keep it conversational and focused."""
-        return self.model.predict(prompt)
+Now respond naturally with the next thoughtful question. You can ask about:
+- ethics in healthcare,
+- shadowing or volunteering experiences,
+- emotional resilience,
+- a teamwork challenge in a clinical setting.
+
+Avoid repeating exact phrasing of earlier questions unless contextually required. Speak as a compassionate, real interviewer—not a narrator. Avoid formatting, lists, or labels."""
+            response = self.model.predict(prompt).strip()
+
+        st.session_state["global_asked_questions"].add(response)
+        return response
 
 medical_school_interviewer = MedicalSchoolInterviewer()

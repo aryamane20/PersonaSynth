@@ -1,4 +1,5 @@
 from langchain_community.chat_models import ChatOpenAI
+import streamlit as st
 
 class BrandManager:
     def __init__(self):
@@ -27,36 +28,48 @@ class BrandManager:
         )
 
     def ask_question(self, history):
+        # Initialize memory for uniqueness if not already set
+        if "global_asked_questions" not in st.session_state:
+            st.session_state["global_asked_questions"] = set()
+
         if not history:
             prompt = f"""{self.persona}
 
 You are the brand manager starting the interview.
 
-Greet the candidate with a warm welcome and telling them your name as Devin as well as a one line introduction of yourself and ask them to introduce themselves, focusing on their experience in brand management, campaign planning, or storytelling.
+Greet the candidate warmly and introduce yourself as Devin. Ask them to walk you through their experience in brand marketing—focus on campaigns, storytelling, or product positioning.
 
-Ask only one question and wait for their response.
+Ask only one question and do not explain what you're doing. Keep it realistic and human—no markdown, no side notes."""
+            response = self.model.predict(prompt).strip()
+        else:
+            context = "\n".join([
+                f"{m['agent']}: {m['question']}\nUser: {m['user']}" for m in history[-2:]
+            ])
+            previously_asked = list(st.session_state["global_asked_questions"])
 
-Do not use labels like '**Interviewer:**', or insert parenthetical notes.
-Do not list options or example follow-ups.
+            prompt = f"""{self.persona}
 
-Do not describe your goal. Do not use markdown or meta instructions—just talk like a human interviewer."""
-            return self.model.predict(prompt)
-
-        context = "\n".join([
-            f"{m['agent']}: {m['question']}\nUser: {m['user']}" for m in history[-2:]
-        ])
-
-        prompt = f"""{self.persona}
-You are in the middle of a live interview for a brand management role. This is the recent conversation:
-
+You are mid-way through a real-time interview. This is the recent exchange:
 {context}
+
+Here are some questions you've already asked:
+{previously_asked}
+
+Avoid repeating any of the same questions verbatim unless it flows naturally.
 Do not add any explanations or bullet points. Just speak naturally.
 Do not list options or example follow-ups.
+Now continue the conversation naturally. Acknowledge their last answer and ask a thoughtful follow-up. You could ask about:
+- branding KPIs,
+- customer insight application,
+- campaign metrics,
+- storytelling approach,
+- cross-functional collaboration.
 
-Acknowledge their response and follow up with a thoughtful, relevant question. Focus on branding KPIs, customer insights, campaign impact, or creative strategy.
+Just speak as Devin would—calm, curious, experienced. Don’t include formatting, bullets, or instructions."""
+            response = self.model.predict(prompt).strip()
 
-Do not describe what you’re doing—just continue the conversation confidently and naturally."""
-
-        return self.model.predict(prompt)
+        # Save question to memory to reduce repetition in future
+        st.session_state["global_asked_questions"].add(response)
+        return response
 
 brand_manager = BrandManager()

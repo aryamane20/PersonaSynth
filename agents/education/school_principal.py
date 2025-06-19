@@ -1,4 +1,5 @@
 from langchain_community.chat_models import ChatOpenAI
+import streamlit as st
 
 class SchoolPrincipal:
     def __init__(self):
@@ -26,29 +27,43 @@ class SchoolPrincipal:
         )
 
     def ask_question(self, history):
+        if "school_questions" not in st.session_state:
+            st.session_state["school_questions"] = set()
+
         if not history:
             prompt = f"""{self.persona}
 
-You are beginning a live school interview. Greet the candidate and tell them your name as Samuel as well as a one line introduction of yourself and then ask them to introduce themselves. Ask about their educational background and experience working with students.
+You are beginning a live school interview. Greet the candidate and tell them your name is Samuel. Briefly introduce yourself and then ask them to introduce themselves, sharing their educational background and any experience working with students.
 
-Do not use labels like '**Interviewer:**', or insert parenthetical notes.
-Do not list options or example follow-ups.
+Do not use labels, markdown, or notes. Ask just one question naturally and professionally."""
+            response = self.model.predict(prompt).strip()
+        else:
+            context = "\n".join([
+                f"{m['agent']}: {m['question']}\nUser: {m['user']}" for m in history[-2:]
+            ])
+            past_questions = list(st.session_state["school_questions"])
 
-Ask only one question and wait for their reply. Do not use labels, instructions, or notes—just begin the conversation naturally."""
-            return self.model.predict(prompt)
+            prompt = f"""{self.persona}
 
-        context = "\n".join([
-            f"{m['agent']}: {m['question']}\nUser: {m['user']}" for m in history[-2:]
-        ])
-
-        prompt = f"""{self.persona}
 This is the current interview transcript:
 
 {context}
+
+Avoid repeating these previously asked questions:
+{past_questions}
 Do not add any explanations or bullet points. Just speak naturally.
 Do not list options or example follow-ups.
-Acknowledge their answer and follow up with a question on behavior management, student motivation, parent engagement, or school values.
-Be clear, kind, and direct—no notes, no formatting, no instructions. Continue as a real principal would."""
-        return self.model.predict(prompt)
+Acknowledge their last answer briefly, then ask your next thoughtful question about:
+- behavior management,
+- student motivation,
+- parent collaboration,
+- leadership during school events or challenges,
+- commitment to school values.
+
+Avoid formatting or explaining. Just continue as a real principal would—clear, kind, and engaging."""
+            response = self.model.predict(prompt).strip()
+
+        st.session_state["school_questions"].add(response)
+        return response
 
 school_principal = SchoolPrincipal()

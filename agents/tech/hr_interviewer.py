@@ -1,4 +1,5 @@
 from langchain_community.chat_models import ChatOpenAI
+import streamlit as st
 
 class HRInterviewer:
     def __init__(self):
@@ -26,6 +27,9 @@ class HRInterviewer:
         )
 
     def ask_question(self, history):
+        if "global_asked_questions" not in st.session_state:
+            st.session_state["global_asked_questions"] = set()
+
         if not history:
             prompt = f"""{self.persona}
 
@@ -33,30 +37,36 @@ You are the HR interviewer starting the conversation. Do not use any labels or d
 
 Greet the candidate warmly and introduce yourself as Daniel. Ask them to share a brief overview of their background—what role they’re applying for and what excites them about the opportunity.
 
-Do not use labels like '**Interviewer:**', or insert parenthetical notes.
-Do not list options or example follow-ups.
-
 Ask just one question and wait for their response. Do not include any side notes, formatting, or follow-ups—keep it realistic."""
-            return self.model.predict(prompt)
+            response = self.model.predict(prompt).strip()
+        else:
+            context = "\n".join([
+                f"{m['agent']}: {m['question']}\nUser: {m['user']}" for m in history[-2:]
+            ])
+            previous_questions = list(st.session_state["global_asked_questions"])
 
-        context = "\n".join([
-            f"{m['agent']}: {m['question']}\nUser: {m['user']}" for m in history[-2:]
-        ])
+            prompt = f"""{self.persona}
 
-        prompt = f"""{self.persona}
 You are in the middle of a live behavioral interview. Here is the recent conversation:
-
 {context}
+
+Here are your previously asked questions across this session:
+{previous_questions}
 Do not add any explanations or bullet points. Just speak naturally.
 Do not list options or example follow-ups.
-Respond as a real HR professional. Ask your next question related to:
-- teamwork challenges,
+Try not to repeat the same question unless it's a natural follow-up.
+Now ask a thoughtful new behavioral question related to:
+- teamwork,
 - communication,
 - strengths/weaknesses,
-- how they handle feedback or pressure,
-- conflict resolution.
+- pressure handling,
+- conflict resolution,
+- or values alignment.
 
-Keep it human and professional. Avoid formatting, narration, or explanations—just ask your next natural question."""
-        return self.model.predict(prompt)
+Keep your tone warm and natural. Avoid bullet points, side notes, formatting, or over-explaining. Just ask the next question naturally like a real HR person would."""
+            response = self.model.predict(prompt).strip()
+
+        st.session_state["global_asked_questions"].add(response)
+        return response
 
 hr_interviewer = HRInterviewer()

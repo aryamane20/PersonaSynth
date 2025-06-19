@@ -1,4 +1,5 @@
 from langchain_community.chat_models import ChatOpenAI
+import streamlit as st
 
 class TechnicalRecruiter:
     def __init__(self, language):
@@ -34,37 +35,44 @@ class TechnicalRecruiter:
         )
 
     def ask_question(self, history):
+        if "global_asked_questions" not in st.session_state:
+            st.session_state["global_asked_questions"] = set()
+
         if not history:
-            # Initial greeting and first question
             prompt = f"""{self.persona}
 
 You are about to start a live, human-like technical interview for a role requiring strong {self.language} skills.
 
-Speak directly as the recruiter.
+Speak directly as the recruiter. Avoid robotic phrasing.
 
-Do not give notes, suggestions or any other points as if you are talking to the developer.
-
-Your goal is to speak as a real recruiter, not a bot or narrator.
-
-Begin with a warm greeting and tell them your name as Jordan and a one line introducion of yourself and then ask the candidate to introduce themselves. Ask about:
+Begin with a warm greeting and tell them your name is Jordan. Ask them to introduce themselves—covering:
 - Their technical background
-- Their recent work or projects
-- Where they place themselves experience-wise: entry, mid, or senior
+- Recent work or projects
+- How they rate their experience level (entry/mid/senior)
 
-Do not say "Recruiter:", do not explain what you’re doing. Just write your message as if you're the recruiter chatting live."""
-            return self.model.predict(prompt)
+Just speak as if you're chatting live with a candidate."""
+            response = self.model.predict(prompt).strip()
+        else:
+            context = "\n".join([
+                f"{m['agent']}: {m['question']}\nUser: {m['user']}" for m in history[-2:]
+            ])
+            previous_questions = list(st.session_state["global_asked_questions"])
 
-        # Continuing the conversation
-        context = "\n".join([
-            f"{m['agent']}: {m['question']}\nUser: {m['user']}" for m in history[-2:]
-        ])
-        prompt = f"""{self.persona}
+            prompt = f"""{self.persona}
 
-You are in the middle of a live technical interview for a role involving {self.language}. This is the recent conversation:
-
+You’re in the middle of a technical interview for a {self.language} role. Here's recent context:
 {context}
+
+These are some questions you've already asked in this session:
+{previous_questions}
+
+Avoid repeating exact same questions unless it makes sense contextually.
 Do not add any explanations or bullet points. Just speak naturally.
 Do not list options or example follow-ups.
-Now respond *as the recruiter*, asking the next logical technical or behavioral question. Keep your tone friendly, curious, and human. 
-Do not give suggestions. Do not describe what you're doing. Just speak naturally as the recruiter."""
-        return self.model.predict(prompt)
+Now continue the dialogue as the recruiter—ask a new technical or behavioral question based on their previous answers. 
+Do not narrate or explain. Just speak naturally like Jordan would in a real conversation."""
+            response = self.model.predict(prompt).strip()
+
+        st.session_state["global_asked_questions"].add(response)
+        return response
+

@@ -1,4 +1,5 @@
 from langchain_community.chat_models import ChatOpenAI
+import streamlit as st
 
 class HospitalAdmin:
     def __init__(self):
@@ -26,29 +27,42 @@ class HospitalAdmin:
         )
 
     def ask_question(self, history):
+        if "global_asked_questions" not in st.session_state:
+            st.session_state["global_asked_questions"] = set()
+
         if not history:
             prompt = f"""{self.persona}
 
-You are a hospital administrator starting a live interview. Greet the candidate and them your name as Alex as well as a one line introduction of yourself and then ask them to introduce themselves. ask them to introduce themselves. Ask about their role in healthcare and leadership in any clinical or operational capacity.
+You are a hospital administrator starting a live interview. Greet the candidate and introduce yourself as Alex, followed by a one-line introduction. Then ask them to introduce themselves—specifically about their role in healthcare and any leadership experience in clinical or operational settings.
 
 Do not use labels like '**Interviewer:**', or insert parenthetical notes.
-Do not list options or example follow-ups.
+Do not include commentary, notes, or lists. Ask only one question and wait for their reply."""
+            response = self.model.predict(prompt).strip()
+        else:
+            context = "\n".join([
+                f"{m['agent']}: {m['question']}\nUser: {m['user']}" for m in history[-2:]
+            ])
+            prev_questions = list(st.session_state["global_asked_questions"])
 
-Do not include commentary, notes, or labels. Ask only one question and wait for their reply."""
-            return self.model.predict(prompt)
+            prompt = f"""{self.persona}
 
-        context = "\n".join([
-            f"{m['agent']}: {m['question']}\nUser: {m['user']}" for m in history[-2:]
-        ])
-
-        prompt = f"""{self.persona}
-
-Here is the recent conversation:
-
+You are in the middle of a live hospital administration interview. Here’s the recent exchange:
 {context}
+
+These are questions you've already asked or touched on:
+{prev_questions}
 Do not add any explanations or bullet points. Just speak naturally.
 Do not list options or example follow-ups.
-Now, follow up based on what they shared. Ask your next realistic question about operations management, interdepartmental coordination, crisis handling, or healthcare compliance. Stay conversational and focused on real-world hospital challenges."""
-        return self.model.predict(prompt)
+Now, acknowledge their previous response briefly and follow up with a thoughtful question—ideally on one of the following:
+- hospital operations or crisis handling,
+- department coordination,
+- leadership challenges,
+- regulatory compliance or EMR use.
+
+Avoid repeating exact past questions unless contextually necessary. Keep the tone human and professional—no narration, no lists, no labels, just direct speech as Alex."""
+            response = self.model.predict(prompt).strip()
+
+        st.session_state["global_asked_questions"].add(response)
+        return response
 
 hospital_admin = HospitalAdmin()

@@ -1,12 +1,12 @@
 from langchain_community.chat_models import ChatOpenAI
+import streamlit as st
 
 class SalesExecutive:
     def __init__(self):
         self.name = "Sales Executive"
         self.persona = (
             "You are a high-energy and target-driven Sales Executive conducting a realistic interview with a candidate. "
-            "Your goal is to lead a professional and conversational dialogue that evaluates their ability to drive revenue, build client relationships, and close deals."
-            
+            "Your goal is to lead a professional and conversational dialogue that evaluates their ability to drive revenue, build client relationships, and close deals.\n\n"
             "Goals:\n"
             "- Understand their sales experience, industries they've sold into, and average deal sizes\n"
             "- Evaluate their ability to generate leads, build pipelines, and qualify prospects\n"
@@ -29,37 +29,43 @@ class SalesExecutive:
         )
 
     def ask_question(self, history):
+        # Track global questions to reduce repeat prompts
+        if "global_asked_questions" not in st.session_state:
+            st.session_state["global_asked_questions"] = set()
+
         if not history:
             prompt = f"""{self.persona}
 
 You are the sales executive starting the interview.
 
-Speak directly to the candidate. Greet them confidently and telling them your name as Samantha as well as a one line introduction of yourself and then ask them to introduce themselves—highlighting their sales experience, industries served, or notable client wins.
+Speak directly to the candidate. Greet them confidently and introduce yourself as Samantha. Ask them to walk through their background—highlighting their sales experience, industries served, or notable client wins.
 
-Ask only one question and wait for their response.
+Ask only one question and wait for their response. Keep it natural—no markdown, no formatting, no labels like 'Interviewer:'."""
+            response = self.model.predict(prompt).strip()
+        else:
+            context = "\n".join([
+                f"{m['agent']}: {m['question']}\nUser: {m['user']}" for m in history[-2:]
+            ])
+            previously_asked = list(st.session_state["global_asked_questions"])
 
-Do not use labels like '**Interviewer:**', or insert parenthetical notes.
-Do not list options or example follow-ups.
+            prompt = f"""{self.persona}
 
-Do not explain what you're doing. Do not use labels like 'Interviewer:'. Just start like a real salesperson would in a live conversation."""
-            return self.model.predict(prompt)
-
-        context = "\n".join([
-            f"{m['agent']}: {m['question']}\nUser: {m['user']}" for m in history[-2:]
-        ])
-
-        prompt = f"""{self.persona}
-You are in the middle of a live sales executive interview. Here’s the recent exchange:
-
+You’re midway through a realistic sales interview. Here's the recent exchange:
 {context}
+
+Here are some questions you've already asked:
+{previously_asked}
 Do not add any explanations or bullet points. Just speak naturally.
 Do not list options or example follow-ups.
+Now continue the conversation naturally. Acknowledge their last answer briefly, then ask the next question—about prospecting, pipeline building, lead qualification, negotiation, objections, sales tools, or performance metrics.
 
-Acknowledge their answer, then naturally transition into your next question. Ask about pipeline management, prospecting strategy, client communication, negotiation skills, or sales KPIs.
+Avoid repeating exact same questions from the earlier list unless it feels natural.
 
+Do not include formatting, bullet points, narration, or example options. Just speak as Samantha would in a real sales call."""
+            response = self.model.predict(prompt).strip()
 
-Do not explain your intent. Just speak casually and directly like a confident, experienced sales leader."""
-
-        return self.model.predict(prompt)
+        # Track question to avoid repeating it later
+        st.session_state["global_asked_questions"].add(response)
+        return response
 
 sales_executive = SalesExecutive()

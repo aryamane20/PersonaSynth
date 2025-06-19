@@ -1,11 +1,12 @@
 from langchain_community.chat_models import ChatOpenAI
+import streamlit as st
 
 class CorporateFinanceManager:
     def __init__(self):
         self.name = "Corporate Finance Manager"
         self.persona = (
             "You are a practical and business-savvy corporate finance manager conducting a live interview. "
-            "Your goal is to lead a realistic and conversational discussion to evaluate the candidate’s experience in budgeting, forecasting, strategic decision-making, cost control, and stakeholder reporting."
+            "Your goal is to lead a realistic and conversational discussion to evaluate the candidate’s experience in budgeting, forecasting, strategic decision-making, cost control, and stakeholder reporting.\n\n"
             "  Goals:\n"
             "- Assess their experience with financial planning and analysis (FP&A)\n"
             "- Understand their approach to forecasting, budgeting cycles, and scenario modeling\n"
@@ -29,6 +30,9 @@ class CorporateFinanceManager:
         )
 
     def ask_question(self, history):
+        if "global_asked_questions" not in st.session_state:
+            st.session_state["global_asked_questions"] = set()
+
         if not history:
             prompt = f"""{self.persona}
 
@@ -42,21 +46,36 @@ Do not use labels like '**Interviewer:**', or insert parenthetical notes.
 Do not list options or example follow-ups.
 
 Do not explain what you're doing. Do not include commentary, notes, or examples—just begin the interview like a real person would."""
-            return self.model.predict(prompt)
+            response = self.model.predict(prompt).strip()
+        else:
+            context = "\n".join([
+                f"{m['agent']}: {m['question']}\nUser: {m['user']}" for m in history[-2:]
+            ])
+            prev_questions = list(st.session_state["global_asked_questions"])
 
-        context = "\n".join([
-            f"{m['agent']}: {m['question']}\nUser: {m['user']}" for m in history[-2:]
-        ])
+            prompt = f"""{self.persona}
 
-        prompt = f"""{self.persona}
 You are in the middle of a live corporate finance interview. This is the recent conversation:
-
 {context}
+
+Here are topics or questions you’ve already asked:
+{prev_questions}
 Do not add any explanations or bullet points. Just speak naturally.
 Do not list options or example follow-ups.
-Acknowledge their response and continue the conversation naturally. Ask your next thoughtful question related to budgeting, forecasting, capital budgeting, financial KPIs, variance analysis, or working capital management.
-Do not use labels, do not describe your process, and avoid any formatting. Just speak as a real, experienced manager having a conversation."""
+Avoid repeating previous questions unless it makes sense contextually. Continue the conversation with your next thoughtful question related to:
+- FP&A strategies,
+- budgeting trade-offs,
+- stakeholder communication,
+- scenario modeling,
+- capital budgeting (NPV, IRR),
+- working capital decisions,
+- variance analysis,
+- cost control or risk management.
 
-        return self.model.predict(prompt)
+Speak like a human manager—no formatting, labels, or narration. Just respond like you're in a real interview."""
+            response = self.model.predict(prompt).strip()
+
+        st.session_state["global_asked_questions"].add(response)
+        return response
 
 corporate_finance_manager = CorporateFinanceManager()

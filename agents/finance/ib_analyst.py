@@ -1,11 +1,12 @@
 from langchain_community.chat_models import ChatOpenAI
+import streamlit as st
 
 class IBAnalyst:
     def __init__(self):
         self.name = "Investment Banking Analyst"
         self.persona = (
             " You are an Investment Banking Analyst conducting a live, simulated interview with a candidate. "
-            " Your role is to lead a realistic, insightful, and professional conversation that reflects how actual IB analysts screen candidates."
+            " Your role is to lead a realistic, insightful, and professional conversation that reflects how actual IB analysts screen candidates.\n\n"
             "  Goals:\n"
             "- Evaluate the candidate’s understanding of financial modeling, valuation techniques (DCF, comps, LBO), M&A processes, debt vs. equity financing, leveraged buyouts, and accounting concepts such as working capital and EBITDA\n"
             "- Assess communication skills, attention to detail, and strategic thinking\n"
@@ -26,36 +27,48 @@ class IBAnalyst:
         )
 
     def ask_question(self, history):
+        if "global_asked_questions" not in st.session_state:
+            st.session_state["global_asked_questions"] = set()
+
         if not history:
             prompt = f"""{self.persona}
 
+You are the investment banking analyst starting the interview now. Do not mention the candidate’s name.
 
-You are the investment banking analyst starting the interview now, dont mention candidates name.
+Speak directly to the candidate in a realistic tone. Greet them briefly and tell them your name is Marcus, then introduce yourself with one sentence.
 
-Speak directly to the candidate in a realistic tone. Greet them briefly and tell them your name as Marcus as well as a one line introduction of yourself and ask them to introduce themselves, including their academic background and any finance-related experience.
+Then ask them to introduce themselves—covering academic background and any finance-related experience.
 
-Ask only one question and then wait for their response.
+Ask only one question and wait for their response.
 
 Do not explain what you're doing. Do not include commentary, notes, or suggestions—just speak like a human interviewer starting a live interview."""
-            return self.model.predict(prompt)
+            response = self.model.predict(prompt).strip()
+        else:
+            context = "\n".join([
+                f"{m['agent']}: {m['question']}\nUser: {m['user']}" for m in history[-2:]
+            ])
+            prev_questions = list(st.session_state["global_asked_questions"])
 
-        context = "\n".join([
-            f"{m['agent']}: {m['question']}\nUser: {m['user']}" for m in history[-2:]
-        ])
-
-        prompt = f"""{self.persona}
+            prompt = f"""{self.persona}
 You are in the middle of a live investment banking interview. This is the recent conversation:
 
 {context}
 
-Acknowledge their response and then continue the conversation as the interviewer. 
-Do not explain what you're about to ask. 
-Do not use labels like 'Interviewer:', or insert parenthetical notes.
+Previously asked questions:
+{prev_questions}
+Do not add any explanations or bullet points. Just speak naturally.
 Do not list options or example follow-ups.
+Avoid repeating prior questions unless absolutely necessary. Now acknowledge the candidate's response and ask your next thoughtful question related to:
+- financial modeling (Excel, 3-statement, LBO),
+- M&A strategy or deal structuring,
+- valuation techniques (DCF, comps, precedent),
+- accounting concepts like working capital or EBITDA,
+- or real-world finance challenges.
 
-Just ask the next thoughtful, finance-related question as if you're speaking directly to the candidate.
-Maintain a confident, professional tone—realistic and human."""
+Speak clearly, confidently, and professionally. Do not add explanations, lists, or formatting—just speak as a real analyst would in conversation."""
+            response = self.model.predict(prompt).strip()
 
-        return self.model.predict(prompt)
+        st.session_state["global_asked_questions"].add(response)
+        return response
 
 ib_analyst = IBAnalyst()
