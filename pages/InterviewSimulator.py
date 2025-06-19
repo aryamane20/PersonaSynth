@@ -5,7 +5,10 @@ import re
 from PIL import Image
 import base64
 from io import BytesIO
+import spacy
+from pdfminer.high_level import extract_text
 
+nlp = spacy.load("en_core_web_sm")
 # === UI Setup ===
 st.set_page_config(
     page_title="Interview Simulator",
@@ -191,6 +194,22 @@ if st.session_state.active_key != new_key:
     st.session_state.active_key = new_key
     for key in ["history", "current_prompt", "current_agent", "turn", "started", "feedback"]:
         st.session_state[key] = [] if key == "history" else 0 if key == "turn" else None if key == "feedback" else False
+# === Resume Upload ===
+st.markdown("### Upload Resume")
+resume_file = st.file_uploader("Upload your resume (PDF only)", type=["pdf"])
+ 
+if resume_file:
+    resume_text = extract_text(resume_file)
+    st.session_state.resume_text = resume_text
+    doc = nlp(resume_text)
+    skills = [token.text.lower() for token in doc if token.pos_ == "NOUN" and token.is_alpha and len(token.text) > 3]
+    orgs = [ent.text for ent in doc.ents if ent.label_ == "ORG"]
+    st.session_state.resume_context = {
+        "skills": list(set(skills)),
+        "organizations": list(set(orgs))
+    }
+    st.success("Resume parsed successfully!")
+ 
 
 # === Start Interview Button ===
 with st.container():
