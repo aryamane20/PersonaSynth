@@ -29,7 +29,7 @@ class SalesExecutive:
         )
 
     def ask_question(self, history):
-        # Track global questions to reduce repeat prompts
+       
         if "global_asked_questions" not in st.session_state:
             st.session_state["global_asked_questions"] = set()
 
@@ -64,7 +64,6 @@ Avoid repeating exact same questions from the earlier list unless it feels natur
 Do not include formatting, bullet points, narration, or example options. Just speak as Samantha would in a real sales call."""
             response = self.model.predict(prompt).strip()
 
-        # Track question to avoid repeating it later
         st.session_state["global_asked_questions"].add(response)
         return response
 

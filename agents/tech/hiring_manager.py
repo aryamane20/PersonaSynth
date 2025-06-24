@@ -63,7 +63,6 @@ Now continue the dialogue naturally. Keep your tone human and don’t explain yo
 
             response = self.model.predict(prompt).strip()
 
-        # Track it to avoid repetition in same session
         st.session_state["global_asked_questions"].add(response)
         return response
 

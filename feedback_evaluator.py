@@ -55,7 +55,4 @@ Summary: [summary text]
                     feedback[key] = value
 
         return feedback
-
-
-# Instantiate evaluator
 evaluator = FeedbackEvaluator()

@@ -28,7 +28,6 @@ class BrandManager:
         )
 
     def ask_question(self, history):
-        # Initialize memory for uniqueness if not already set
         if "global_asked_questions" not in st.session_state:
             st.session_state["global_asked_questions"] = set()
 

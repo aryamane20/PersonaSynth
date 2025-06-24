@@ -6,14 +6,14 @@ from PIL import Image
 import base64
 from io import BytesIO
 
-# === UI Setup ===
+# === Page Config===
 st.set_page_config(
     page_title="Interview Simulator",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# === Custom CSS for consistent styling ===
+# === CSS ===
 st.markdown("""
     <style>
     section[data-testid="stSidebar"] {
@@ -81,7 +81,7 @@ def is_likely_ai_generated(text):
         return True
     return False
 
-# === Define industry → agents → subroles structure ===
+# === Define industry ===
 INDUSTRY_AGENTS = {
     "Tech & Software": {
         "Hiring Manager": "agents.tech.hiring_manager",
@@ -135,10 +135,10 @@ for key, val in {
     if key not in st.session_state:
         st.session_state[key] = val
 
-# === Constants ===
+# === No of Rounds ===
 MAX_TURNS = 6
 
-# === Step 1: Industry and Agent Selection ===
+# === Industry and Agent Selection ===
 with st.container():
     col1, col2 = st.columns(2)
     with col1:
@@ -163,7 +163,7 @@ with st.container():
             format_func=lambda x: str(x)
         )
 
-# === Agent Loading ===
+# === Sub agents for languages ===
 if isinstance(agents[selected_agent], dict):
     subroles = list(agents[selected_agent].keys())
     selected_subrole = st.selectbox("Select Specialization", subroles)
@@ -176,7 +176,7 @@ else:
     agent_module = importlib.import_module(module_path)
     agent = getattr(agent_module, module_path.split('.')[-1])
 
-# === Show Ideal Candidate Info ===
+# === Ideal Candidate Info ===
 ideal_user_desc = AGENT_IDEAL_USERS.get(selected_agent)
 if ideal_user_desc:
     st.markdown(f"""
@@ -191,6 +191,7 @@ if st.session_state.active_key != new_key:
     st.session_state.active_key = new_key
     for key in ["history", "current_prompt", "current_agent", "turn", "started", "feedback"]:
         st.session_state[key] = [] if key == "history" else 0 if key == "turn" else None if key == "feedback" else False
+        
 # === Start Interview Button ===
 with st.container():
     st.markdown('<div class="button-wrapper">', unsafe_allow_html=True)

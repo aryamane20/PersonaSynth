@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- Inject CSS ---
+# --- CSS ---
 st.markdown("""
     <style>
      section[data-testid="stSidebar"] {
@@ -114,7 +114,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- Hero Section (Text + Logo Side by Side) ---
+# --- Text + Logo ---
 logo = Image.open("PSlogo.jpeg") 
 buffered = BytesIO()
 logo.save(buffered, format="PNG")
@@ -133,7 +133,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 
-# --- CTA Button ---
+# --- Button ---
 st.markdown("""
     <div class="button-wrapper">
          <a href="?nav=InterviewSimulator">
@@ -144,11 +144,9 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# --- Catch the redirect
 if st.query_params.get("nav") == "InterviewSimulator":
     st.switch_page("pages/InterviewSimulator.py")
 
-# --- Why Choose Section ---
 st.markdown('<div class="section-title">Why Choose PersonaSynth?</div>', unsafe_allow_html=True)
 st.markdown('<div class="feature-row">', unsafe_allow_html=True)
 
@@ -163,7 +161,6 @@ for icon, text in features:
 
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- How It Works Section ---
 st.markdown('<div class="section-title">How It Works?</div>', unsafe_allow_html=True)
 st.markdown('<div class="step-container">', unsafe_allow_html=True)
 
@@ -184,9 +181,6 @@ for num, title, desc in steps:
 
 st.markdown('</div>', unsafe_allow_html=True)
 
-# ---------------------
-# Footer
-# ---------------------
 st.markdown("""
     <hr style="margin-top: 20px; margin-bottom: 0;"/>
     <div style='text-align: right; font-size: 0.9em; color: black; padding-right: 20px;'>
