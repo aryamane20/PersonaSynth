@@ -52,7 +52,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-logo = Image.open("Synthlogo.png") 
+logo = Image.open("SynthLogo.png") 
 buffered = BytesIO()
 logo.save(buffered, format="PNG")
 logo_b64 = base64.b64encode(buffered.getvalue()).decode()
