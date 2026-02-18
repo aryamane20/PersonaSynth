@@ -13,7 +13,7 @@ Ideal for students, professionals, and career switchers preparing for real-world
 
 | Feature                         | Description |
 |----------------------------------|-------------|
-| **Agentic AI Simulation**       | Interviewers simulate real personalities and recall past interactions. |
+| **AI Simulation**       | Interviewers simulate real personalities and recall past interactions. |
 | **Industry-Specific Agents**    | Choose from a range of roles across 5 key industries. |
 | **Progress Tracking**           | Round-based structure (6 total) with live round tracking. |
 | **Answer Authenticity Detection** | Uses heuristic rules to flag overly formal or AI-generated responses. |
