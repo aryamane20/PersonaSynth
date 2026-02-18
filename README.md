@@ -1,5 +1,5 @@
 # PersonaSynth 
-*An AI-powered mock interview simulator built with Streamlit and Agentic AI design patterns.*
+*An AI-powered mock interview simulator built with Streamlit and AI design patterns.*
 
 ## Overview
 
